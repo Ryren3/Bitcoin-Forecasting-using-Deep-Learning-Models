@@ -171,6 +171,135 @@ Rolling Directional Accuracy
  
 Figure 9 — Hybrid model rolling 50-period directional accuracy. Pattern mirrors the standalone LSTM closely — oscillating around 50% with no persistent edge above the random-guess baseline. Overall directional accuracy: 49.67%.
 
+---
+
+## 7 Model Comparison: Standalone LSTM vs Hybrid LSTM + XGBoost
+
+### Performance Metric Matrix
+
+| Evaluation Metric | Standalone LSTM | Hybrid LSTM + XGBoost |
+|---|---|---|
+| Dataset (Train / Val / Test) | 189k / 37.8k / 25.1k | 189k / 37.8k / 25.1k |
+| Price RMSE (Dollar Error) | $95.15 | $95.19 |
+| Price MAPE | 0.0843% | 0.0843% |
+| Directional Accuracy | 50.24% ✅ | 49.67% |
+| Log Returns RMSE | 0.001323 ✅ | 0.001580 |
+
+---
+
+### 🏆 Which Model Performed Better?
+
+**The standalone LSTM wins on every metric**, albeit by a very small margin.
+
+- Price RMSE: LSTM is **$0.04 cheaper per candle** in dollar error
+- Price MAPE: Identical at 0.0843% — neither model has an advantage here
+- Directional Accuracy: LSTM is **0.57 percentage points higher** than the hybrid
+- Log Returns RMSE: LSTM is **16% lower** than the hybrid (0.001323 vs 0.001580)
+
+The most telling difference is Log Returns RMSE. The hybrid model's RMSE of 0.001580 is
+essentially the **flatline baseline** — the error you would get if you predicted zero return
+for every single candle. This means XGBoost, despite receiving the LSTM's learned features,
+converged on predicting the unconditional mean (≈ 0) for every timestep rather than learning
+any genuine directional signal.
+
+---
+
+### 🔍 Why Did the Standalone LSTM Perform Better?
+
+#### 1. XGBoost Collapsed to the Mean (Flatline Problem)
+
+The most significant issue with the hybrid model is visible in the returns plot — the predicted
+returns line is a flat orange dashed line sitting at zero throughout the entire test set. XGBoost
+learned that the safest prediction is always ≈ 0, because:
+
+- 5-minute BTC log returns are extremely small in magnitude (typically ±0.001 to ±0.005)
+- The distribution of returns is centred very close to zero
+- XGBoost's loss function (MSE) is minimised by predicting the mean when there is no clear signal
+
+This is a well-known failure mode called **mean collapse** or **hedging to the mean**, where a
+model sacrifices directional accuracy for lower average squared error.
+
+#### 2. The LSTM's Final Layer Had More Context Than XGBoost's Input
+
+The standalone LSTM's fully connected output layer sees the **raw hidden state** directly and
+was trained end-to-end — the LSTM learned to produce hidden states that are *specifically useful
+for the final linear prediction*. In the hybrid model, the feature extractor was frozen after
+standalone training. XGBoost received hidden states that were optimised for the standalone task,
+not for XGBoost's tree-splitting algorithm. This domain mismatch limits what XGBoost can extract.
+
+#### 3. The Signal-to-Noise Ratio Is Too Low for XGBoost to Add Value
+
+XGBoost's strength is finding non-linear interactions between features when genuine signal exists.
+At 5-minute frequency, BTC returns are dominated by microstructure noise. The LSTM's 64 hidden
+features encode this noisy signal — XGBoost then attempts to find structure in what is
+essentially noise-on-top-of-noise. In this regime, the simpler model (LSTM linear output layer)
+outperforms the more complex one (XGBoost tree ensemble).
+
+#### 4. Short Training Data Disadvantages the Hybrid
+
+Only ~5 months of data was used. XGBoost typically needs a large number of diverse examples to
+build meaningful trees. With a relatively small dataset and a high-noise target, XGBoost
+overfits early and generalises poorly — which is why early stopping triggered well before the
+500-tree maximum, and why the final model essentially predicts zero.
+
+---
+
+### 📈 What the Graphs Confirm
+
+| Plot | LSTM | Hybrid |
+|---|---|---|
+| **Price prediction** | Orange and blue lines nearly indistinguishable | Same — both track the macro trend equally |
+| **Log return prediction** | Predicted line is flat but has minor variation | Predicted line is a perfectly flat zero baseline |
+| **Residuals** | Noisy around zero, no drift | Same noise pattern — errors driven by the same flash-crash events |
+| **Directional accuracy** | Oscillates above and below 50%, slight upward bias | Oscillates around 50% with no consistent edge |
+
+The price plots looking identical for both models is explained by the mathematics of log return
+reconstruction. Since both models predict near-zero returns, and price is reconstructed as
+`last_close * exp(predicted_return)`, a near-zero return gives `exp(≈0) ≈ 1.0`, meaning the
+predicted price is approximately the last known close price shifted by a tiny amount. This is
+why predicted prices track actual prices visually well even though the return predictions
+themselves are essentially zero — the model is exploiting the fact that BTC prices are
+persistent (today's price is a good predictor of tomorrow's price at 5-minute scale).
+
+---
+
+### 🧠 Key Takeaways
+
+1. **The hybrid architecture is theoretically sound** — using LSTM features as XGBoost inputs
+   is a legitimate and widely used approach in time series forecasting.
+
+2. **The bottleneck is the data frequency, not the models** — at 5-minute granularity, returns
+   are too noisy for either model to extract consistent directional signal. This is not a
+   pipeline failure; it is an honest reflection of the difficulty of the problem.
+
+3. **The flatline collapse in XGBoost is informative** — it tells us the LSTM's hidden
+   representations do not contain enough structured signal for a tree-based model to split on.
+   This would likely improve with longer training history, more features (order book data,
+   funding rates, sentiment), or a lower-frequency target (hourly or daily returns).
+
+4. **Both models successfully capture macro price trend** — the price reconstruction plots show
+   that both models correctly follow BTC's overall trajectory from ~$63,000 to ~$83,000 across
+   the test period, even though candle-level directional accuracy is near random.
+
+5. **The standalone LSTM is the better deployment choice** — simpler, faster, and marginally
+   more accurate on every metric. The hybrid adds computational cost (feature extraction +
+   XGBoost training) without delivering improved performance on this dataset.
+
+---
+
+### 🔮 How to Improve the Hybrid Model
+
+If revisiting this project, the following changes would likely close the performance gap:
+
+- **Lower frequency target** — train on hourly or 4-hour returns where signal-to-noise is higher
+- **Richer features** — add order book imbalance, funding rate, open interest, or on-chain metrics
+- **Longer training data** — multiple years across bull, bear, and sideways regimes
+- **Fine-tune LSTM jointly with XGBoost** — rather than freezing LSTM weights, train end-to-end
+- **Alternative second-stage models** — LightGBM or a small MLP may generalise better than
+  XGBoost on this feature set given the low signal strength
+
+---
+
 
 # 7.  Technology Stack
 Category	Library	Role
