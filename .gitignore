@@ -1,0 +1,28 @@
+# ====================================================================
+# PYTHON SPECIFIC FILTER
+# ====================================================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ====================================================================
+# DATA & MODEL CHECKPOINT FILTER (The heavy lifting files)
+# ====================================================================
+# Ignore all raw or processed binary data numpy matrices
+*.npy
+data/
+
+# Ignore serialized heavy model weight states
+*.pth
+*.json
+
+# ====================================================================
+# WORKSPACE ENVIRONMENT FILTER
+# ====================================================================
+venv/
+.venv/
+env/
+.env
