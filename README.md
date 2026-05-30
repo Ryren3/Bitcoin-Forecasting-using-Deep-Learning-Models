@@ -116,18 +116,26 @@ The near-zero log return (−0.000006) is consistent with the model's mean-rever
 # 6.1  Standalone LSTM Model
 
 Training vs Validation Loss
+<img width="1200" height="600" alt="image" src="https://github.com/user-attachments/assets/0011c4a2-c480-44e8-88cb-9e2e02184a48" />
+
  
 Figure 1 — LSTM training and validation loss over 11 epochs. Train loss spikes at epoch 1 due to the high learning rate (0.01) then descends sharply. Early stopping triggered at epoch 11. Both curves converge near zero indicating stable training.
 
 Actual vs Predicted Bitcoin Prices
+<img width="1200" height="600" alt="image" src="https://github.com/user-attachments/assets/5f880620-cfe9-409e-9361-6d4480b0180a" />
+
  
 Figure 2 — LSTM price reconstruction over the full test set (~25,000 candles). Predicted prices (orange dashed) track actual prices (blue) closely across the $63,000–$83,000 range, confirming the model captures macro trend direction.
 
 Actual vs Predicted Log Returns
+<img width="1200" height="600" alt="image" src="https://github.com/user-attachments/assets/6334cf2e-0212-4812-b8a2-f4ca7ad028f5" />
+
  
 Figure 3 — LSTM log return predictions (orange dashed) compared to actual returns (blue). Predictions are consistently near zero — the model learns the unconditional mean return rather than individual candle movements. The large spike near timestep 6,500 is a flash-crash event.
 
 Residuals Plot
+<img width="1200" height="600" alt="image" src="https://github.com/user-attachments/assets/72e832fe-f679-494d-85a2-2a8dff278844" />
+
  
 Figure 4 — LSTM residuals (actual minus predicted log returns) over time. Errors are centred around zero with no visible drift or systematic pattern, indicating no persistent bias. The large spike around timestep 6,500 corresponds to a high-volatility event.
 
@@ -140,18 +148,26 @@ Figure 5 — LSTM rolling 50-period directional accuracy. The green line oscilla
 # 6.2  Hybrid LSTM + XGBoost Model
 
 Actual vs Predicted Bitcoin Prices
+<img width="1784" height="881" alt="image" src="https://github.com/user-attachments/assets/5ee3e347-b755-4063-8823-ce188c17cacb" />
+
  
 Figure 6 — Hybrid model price reconstruction. Predicted prices (orange dashed) match actual prices (blue) very closely across the full range, nearly indistinguishable from the standalone LSTM at the price level — consistent with the identical MAPE of 0.0843%.
 
 Actual vs Predicted Log Returns
+<img width="1784" height="881" alt="image" src="https://github.com/user-attachments/assets/91d88b0e-7fa0-4708-b0fb-147f4abb9790" />
+
  
 Figure 7 — Hybrid log return predictions (orange dashed) are a nearly flat line at zero throughout the test set. XGBoost has converged on predicting the unconditional mean return — the flatline baseline behaviour noted in the metrics. Actual returns (blue) show the full range of market volatility.
 
 Residuals Plot
+<img width="1784" height="881" alt="image" src="https://github.com/user-attachments/assets/09e566d0-6130-4f67-9936-e582f3f491d7" />
+
  
 Figure 8 — Hybrid model residuals in USD. Errors are centred around zero with no visible drift. The dominant spike (~$2,600) near timestep 6,500 corresponds to the same flash-crash event seen in LSTM residuals. The predominantly red shading indicates the model consistently underpredicts on large up-moves.
 
 Rolling Directional Accuracy
+<img width="1784" height="731" alt="image" src="https://github.com/user-attachments/assets/6a6362a1-440a-424e-a360-9baf4cc3cfb1" />
+
  
 Figure 9 — Hybrid model rolling 50-period directional accuracy. Pattern mirrors the standalone LSTM closely — oscillating around 50% with no persistent edge above the random-guess baseline. Overall directional accuracy: 49.67%.
 
