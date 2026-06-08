@@ -10,9 +10,9 @@ Hybrid LSTM + XGBoost Pipeline
 This project implements a complete end-to-end pipeline for short-term Bitcoin price forecasting using a hybrid deep learning and gradient boosting architecture. The model predicts the log return of the next 5-minute candle given a lookback window of 65 consecutive candles, which is then converted back into a projected dollar price.
 
 •	Stage 1 — Standalone LSTM: recurrent neural network reads sequential candle data and directly predicts the next log return.
-•	Stage 2 — Hybrid LSTM + XGBoost: the trained LSTM is repurposed as a feature extractor. Its 64-dimensional hidden state is passed to XGBoost as input features for the final prediction.
+•	Stage 2 — Hybrid LSTM + XGBoost: the trained LSTM is now repurposed as a feature extractor. Its 64-dimensional hidden state is passed to XGBoost as input features for the final prediction.
 
-🎯  Core hypothesis
+Core hypothesis
 The LSTM's recurrent hidden state encodes temporal patterns that XGBoost cannot discover from raw tabular data alone. Combining both models yields sequential pattern recognition from the LSTM with non-linear decision boundary flexibility from XGBoost.
 
 ## 2.  Pipeline Architecture
@@ -83,12 +83,13 @@ Two-stage XGBoost training: Stage 1 finds optimal tree count on a clean train/va
 
 ## 4.  Results
 ### 4.1  Performance Metric Matrix
-Evaluation Metric	Standalone LSTM	Hybrid LSTM + XGBoost
-Dataset (Train / Val / Test)	189k / 37.8k / 25.1k	189k / 37.8k / 25.1k
-Price RMSE (Dollar Error)	$95.15	$95.19
-Price MAPE	0.0843%	0.0843%
-Directional Accuracy	50.24%	49.67%
-Log Returns RMSE	0.001323	0.001580  (Flatline Baseline)
+| Evaluation Metric | Standalone LSTM | Hybrid LSTM + XGBoost |
+|---|---|---|
+| Dataset (Train / Val / Test)	| 189k / 37.8k / 25.1k	| 189k / 37.8k / 25.1k |
+| Price RMSE (Dollar Error) | $95.15 |	$95.19|
+| Price MAPE |	0.0843% |	0.0843%|
+| Directional Accuracy |	50.24%	| 49.67% |
+| Log Returns RMSE |	0.001323 |	0.001580  (Flatline Baseline) |
 
 ### 4.2  Interpretation
 Price RMSE and MAPE
@@ -182,8 +183,8 @@ Figure 9 — Hybrid model rolling 50-period directional accuracy. Pattern mirror
 | Dataset (Train / Val / Test) | 189k / 37.8k / 25.1k | 189k / 37.8k / 25.1k |
 | Price RMSE (Dollar Error) | $95.15 | $95.19 |
 | Price MAPE | 0.0843% | 0.0843% |
-| Directional Accuracy | 50.24% ✅ | 49.67% |
-| Log Returns RMSE | 0.001323 ✅ | 0.001580 |
+| Directional Accuracy | 50.24%  | 49.67% |
+| Log Returns RMSE | 0.001323  | 0.001580 |
 
 ---
 
@@ -234,13 +235,6 @@ At 5-minute frequency, BTC returns are dominated by microstructure noise. The LS
 features encode this noisy signal — XGBoost then attempts to find structure in what is
 essentially noise-on-top-of-noise. In this regime, the simpler model (LSTM linear output layer)
 outperforms the more complex one (XGBoost tree ensemble).
-
-#### 4. Short Training Data Disadvantages the Hybrid
-
-Only ~5 months of data was used. XGBoost typically needs a large number of diverse examples to
-build meaningful trees. With a relatively small dataset and a high-noise target, XGBoost
-overfits early and generalises poorly — which is why early stopping triggered well before the
-500-tree maximum, and why the final model essentially predicts zero.
 
 ---
 
@@ -293,7 +287,6 @@ If revisiting this project, the following changes would likely close the perform
 
 - **Lower frequency target** — train on hourly or 4-hour returns where signal-to-noise is higher
 - **Richer features** — add multiple indicator set-ups like MACD, MA, etc.
-- **Longer training data** — multiple years across bull, bear, and sideways regimes
 - **Fine-tune LSTM jointly with XGBoost** — rather than freezing LSTM weights, train end-to-end
 - **Alternative second-stage models** — LightGBM or a small MLP may generalise better than
   XGBoost on this feature set given the low signal strength
@@ -313,7 +306,6 @@ Model Persistence	joblib, torch	Scaler and weight saving
 Visualisation	matplotlib	Training curves, price plots, residuals
 
 ## 9.  Limitations and Honest Assessment
-•	Short data range: ~5 months (Jan–May 2026). A robust model would train across multiple market regimes spanning several years.
 •	5-minute returns are near-random: at this frequency BTC price changes are dominated by microstructure noise. Near-50% directional accuracy is expected.
 •	Single-step prediction only: the model predicts one candle at a time. Multi-step forecasting would compound errors significantly.
 •	No transaction costs modelled: directional accuracy does not account for exchange fees, bid-ask spread, or execution latency. This is a research model, not a trading system.
